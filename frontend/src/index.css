@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: linear-gradient(
+    135deg,
+    #0B0F19,
+    #111827
+  );
+  color: white;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.gradient-btn {
+  background: linear-gradient(
+    90deg,
+    #2563EB,
+    #3B82F6
+  );
+}

@@ -1,0 +1,12 @@
+.env
+backend/.env
+frontend/.env
+uploads/
+__pycache__/
+*.pyc
+node_modules/
+dist/
+.vscode/
+.idea/
+vectorstore/faiss_index/
+vectorstore/embeddings_cache/
