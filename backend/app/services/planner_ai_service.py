@@ -17,6 +17,9 @@ def generate_study_plan(user_email: str, db: Session):
         User.email == user_email
     ).first()
 
+    if not user:
+        return None
+
     tasks = db.query(Task).filter(
         Task.user_id == user.id,
         Task.completed == False
@@ -35,14 +38,12 @@ def generate_study_plan(user_email: str, db: Session):
     ).all()
 
     task_text = "\n".join(
-        [task.title for task in tasks]
+        task.title for task in tasks
     )
 
     exam_text = "\n".join(
-        [
-            f"{exam.subject} on {exam.exam_date}"
-            for exam in exams
-        ]
+        f"{exam.subject} on {exam.exam_date}"
+        for exam in exams
     )
 
     total_hours = sum(
@@ -51,41 +52,42 @@ def generate_study_plan(user_email: str, db: Session):
     )
 
     doc_text = "\n".join(
-        [doc.filename for doc in docs]
+        doc.filename for doc in docs
     )
 
     prompt = f"""
-You are an intelligent AI academic planner.
+You are an intelligent academic AI planner.
 
-Student profile:
+Student:
 Name: {user.full_name}
 CGPA: {user.cgpa}
 Branch: {user.branch}
 Semester: {user.semester}
-Weak subjects: {user.weak_subjects}
-Placement target: {user.placement_target}
-Available study hours daily: {user.available_study_hours}
+Weak Subjects: {user.weak_subjects}
+Placement Target: {user.placement_target}
+Daily Study Hours Available: {user.available_study_hours}
 
-Pending tasks:
+Pending Tasks:
 {task_text}
 
-Upcoming exams:
+Upcoming Exams:
 {exam_text}
 
-Study history:
-Total study hours logged: {total_hours}
+Study History:
+Total Hours Logged: {total_hours}
 
-Available study materials:
+Available Notes:
 {doc_text}
 
-Decide:
-1. What the student should study TODAY
-2. Priority order
-3. Time allocation
-4. Balance academics and placements
-5. Avoid overload
+Generate a highly personalized study plan for TODAY.
 
-Return a clear day plan.
+Requirements:
+- decide what the student should study
+- prioritize weak subjects
+- prioritize urgent exams
+- include placement prep
+- balance workload
+- provide exact time blocks
 """
 
     response = requests.post(
@@ -94,7 +96,8 @@ Return a clear day plan.
             "model": "llama3.2:3b",
             "prompt": prompt,
             "stream": False
-        }
+        },
+        timeout=120
     )
 
     return response.json()["response"]

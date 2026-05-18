@@ -10,8 +10,7 @@ from app.api.routes import (
     dashboard,
       study_sessions,
       documents,
-      document_chunk,
-          study_plan
+          planner
 
 )
 from app.models import (
@@ -20,7 +19,8 @@ from app.models import (
     exam,
     study_session,
     uploaded_document,
-    document_chunk
+    document_chunk,
+    study_plan
 )
 Base.metadata.create_all(bind=engine)
 
@@ -36,7 +36,7 @@ app.include_router(exams.router)
 app.include_router(dashboard.router)
 app.include_router(study_sessions.router)
 app.include_router(documents.router)
-app.include_router(document_chunk.router)
+app.include_router(planner.router)
 
 @app.get("/")
 def root():

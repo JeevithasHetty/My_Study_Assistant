@@ -5,3 +5,4 @@ from . import exams
 from . import dashboard
 from . import study_sessions
 from . import documents
+from . import planner

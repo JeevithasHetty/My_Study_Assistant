@@ -19,9 +19,15 @@ class StudyPlan(Base):
         index=True
     )
 
-    plan_date = Column(String)
+    plan_date = Column(
+        String,
+        nullable=False
+    )
 
-    ai_plan = Column(Text)
+    ai_plan = Column(
+        Text,
+        nullable=False
+    )
 
     status = Column(
         String,
