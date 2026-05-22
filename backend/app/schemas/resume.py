@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Optional
 
 
 class ResumeResponse(BaseModel):
@@ -8,3 +9,7 @@ class ResumeResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ResumeAnalysisRequest(BaseModel):
+    job_description: Optional[str] = None

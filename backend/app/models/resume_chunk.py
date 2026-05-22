@@ -4,6 +4,7 @@ from sqlalchemy import (
     Text,
     ForeignKey
 )
+
 from app.core.database import Base
 
 
