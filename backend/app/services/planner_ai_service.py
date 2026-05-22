@@ -92,7 +92,7 @@ Requirements:
     response = requests.post(
         OLLAMA_URL,
         json={
-           "model": "phi3:mini",
+          "model": "tinyllama",
             "prompt": prompt,
             "stream": False
         },

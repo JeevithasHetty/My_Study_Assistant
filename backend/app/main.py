@@ -23,7 +23,8 @@ from app.models import (
     uploaded_document,
     document_chunk,
     study_plan,
-    resume
+    resume,
+    resume_chunk
 )
 
 Base.metadata.create_all(bind=engine)

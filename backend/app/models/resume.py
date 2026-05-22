@@ -19,15 +19,9 @@ class Resume(Base):
         index=True
     )
 
-    filename = Column(
-        String,
-        nullable=False
-    )
+    filename = Column(String, nullable=False)
 
-    file_path = Column(
-        String,
-        nullable=False
-    )
+    file_path = Column(String, nullable=False)
 
     extracted_text = Column(
         Text,

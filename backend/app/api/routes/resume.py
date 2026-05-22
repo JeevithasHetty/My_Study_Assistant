@@ -1,4 +1,5 @@
 import os
+import uuid
 import aiofiles
 
 from fastapi import (
@@ -16,6 +17,7 @@ from app.core.security import verify_token
 
 from app.models.user import User
 from app.models.resume import Resume
+from app.models.resume_chunk import ResumeChunk
 
 from app.schemas.resume import ResumeResponse
 
@@ -24,7 +26,10 @@ from app.utils.file_parser import (
     extract_docx_text
 )
 
-from app.services.resume_ai_service import analyze_resume
+from app.services.resume_ai_service import (
+    analyze_resume,
+    chunk_text
+)
 
 router = APIRouter(
     prefix="/resume",
@@ -65,35 +70,58 @@ async def upload_resume(
         exist_ok=True
     )
 
+    unique_filename = f"{uuid.uuid4()}{extension}"
+
     file_path = os.path.join(
         UPLOAD_DIR,
-        file.filename
+        unique_filename
     )
 
-    async with aiofiles.open(
-        file_path,
-        "wb"
-    ) as out_file:
-        content = await file.read()
-        await out_file.write(content)
+    try:
+        async with aiofiles.open(
+            file_path,
+            "wb"
+        ) as out_file:
+            while content := await file.read(1024 * 1024):
+                await out_file.write(content)
 
-    if extension == ".pdf":
-        extracted = extract_pdf_text(file_path)
-    else:
-        extracted = extract_docx_text(file_path)
+        if extension == ".pdf":
+            extracted = extract_pdf_text(file_path)
+        else:
+            extracted = extract_docx_text(file_path)
 
-    resume = Resume(
-        filename=file.filename,
-        file_path=file_path,
-        extracted_text=extracted,
-        user_id=user.id
-    )
+        resume = Resume(
+            filename=file.filename,
+            file_path=file_path,
+            extracted_text=extracted,
+            user_id=user.id
+        )
 
-    db.add(resume)
-    db.commit()
-    db.refresh(resume)
+        db.add(resume)
+        db.commit()
+        db.refresh(resume)
 
-    return resume
+        chunks = chunk_text(extracted)
+
+        for chunk in chunks:
+            db_chunk = ResumeChunk(
+                content=chunk,
+                resume_id=resume.id
+            )
+            db.add(db_chunk)
+
+        db.commit()
+
+        return resume
+
+    except Exception as e:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Upload failed: {str(e)}"
+        )
 
 
 @router.post("/analyze/{resume_id}", response_model=ResumeResponse)
@@ -105,6 +133,12 @@ def analyze_uploaded_resume(
     user = db.query(User).filter(
         User.email == email
     ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
 
     resume = db.query(Resume).filter(
         Resume.id == resume_id,
@@ -138,6 +172,12 @@ def latest_resume(
     user = db.query(User).filter(
         User.email == email
     ).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
 
     resume = db.query(Resume).filter(
         Resume.user_id == user.id
