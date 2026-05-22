@@ -92,7 +92,7 @@ Requirements:
     response = requests.post(
         OLLAMA_URL,
         json={
-            "model": "llama3.2:3b",
+           "model": "phi3:mini",
             "prompt": prompt,
             "stream": False
         },

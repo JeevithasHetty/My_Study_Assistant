@@ -6,3 +6,4 @@ from . import dashboard
 from . import study_sessions
 from . import documents
 from . import planner
+from . import resume

@@ -1,18 +1,20 @@
 from fastapi import FastAPI
 from app.core.database import Base, engine
-from app.api.routes import auth, users
-from app.models import user
+
+# ROUTES
 from app.api.routes import (
     auth,
     users,
     tasks,
     exams,
     dashboard,
-      study_sessions,
-      documents,
-          planner
-
+    study_sessions,
+    documents,
+    planner,
+    resume as resume_routes
 )
+
+# MODELS
 from app.models import (
     user,
     task,
@@ -20,8 +22,10 @@ from app.models import (
     study_session,
     uploaded_document,
     document_chunk,
-    study_plan
+    study_plan,
+    resume
 )
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -37,6 +41,8 @@ app.include_router(dashboard.router)
 app.include_router(study_sessions.router)
 app.include_router(documents.router)
 app.include_router(planner.router)
+app.include_router(resume_routes.router)
+
 
 @app.get("/")
 def root():
