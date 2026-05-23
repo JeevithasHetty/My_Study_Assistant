@@ -1,30 +1,62 @@
-import requests
-from app.core.config import settings
+import os
+import json
+from dotenv import load_dotenv
+from groq import Groq
+
+load_dotenv()
+
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 
 def search_web_resources(topic):
-    url = "https://www.googleapis.com/customsearch/v1"
+    prompt = f"""
+You are a technical learning assistant.
 
-    params = {
-        "key": settings.GOOGLE_SEARCH_API_KEY,
-        "cx": settings.GOOGLE_SEARCH_ENGINE_ID,
-        "q": topic
-    }
+For this learning topic:
 
-    response = requests.get(
-        url,
-        params=params
-    )
+{topic}
 
-    data = response.json()
+Generate 3 highly relevant learning resources.
 
-    results = []
+Rules:
+1. Prefer official documentation
+2. Prefer trusted learning platforms
+3. No fake URLs
+4. Return ONLY JSON
 
-    if "items" in data:
-        for item in data["items"][:3]:
-            results.append({
-                "title": item["title"],
-                "url": item["link"]
-            })
+Format:
 
-    return results
+[
+  {{
+    "title": "Resource Name",
+    "url": "https://..."
+  }}
+]
+"""
+
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Generate real learning resource URLs."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.2,
+            max_tokens=500
+        )
+
+        content = response.choices[0].message.content
+
+        return json.loads(content)
+
+    except Exception as e:
+        print("Docs resource error:", e)
+        return []

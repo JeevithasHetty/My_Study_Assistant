@@ -8,8 +8,6 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     GROQ_API_KEY: str
     YOUTUBE_API_KEY: str
-    GOOGLE_SEARCH_API_KEY: str
-    GOOGLE_SEARCH_ENGINE_ID: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
