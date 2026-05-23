@@ -11,7 +11,8 @@ from app.api.routes import (
     study_sessions,
     documents,
     planner,
-    resume as resume_routes
+    resume as resume_routes,
+    resources
 )
 
 # MODELS
@@ -43,6 +44,7 @@ app.include_router(study_sessions.router)
 app.include_router(documents.router)
 app.include_router(planner.router)
 app.include_router(resume_routes.router)
+app.include_router(resources.router)
 
 
 @app.get("/")

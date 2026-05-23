@@ -7,3 +7,4 @@ from . import study_sessions
 from . import documents
 from . import planner
 from . import resume
+from . import resources

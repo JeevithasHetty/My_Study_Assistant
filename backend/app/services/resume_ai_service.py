@@ -1,11 +1,10 @@
 import os
+import json
 from dotenv import load_dotenv
-
+from groq import Groq
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
-
-from groq import Groq
 
 
 load_dotenv()
@@ -23,7 +22,9 @@ def chunk_text(text, chunk_size=500):
     chunks = []
 
     for i in range(0, len(text), chunk_size):
-        chunks.append(text[i:i + chunk_size])
+        chunks.append(
+            text[i:i + chunk_size]
+        )
 
     return chunks
 
@@ -42,20 +43,24 @@ def create_vector_index(chunks):
     return index, chunks
 
 
-def retrieve_relevant_resume_sections(query, index, chunks):
+def retrieve_relevant_resume_sections(
+    query,
+    index,
+    chunks
+):
     query_embedding = embedder.encode([query])
 
     distances, indices = index.search(
         np.array(query_embedding).astype("float32"),
-        12
+        10
     )
 
-    relevant = [
+    relevant_chunks = [
         chunks[i]
         for i in indices[0]
     ]
 
-    return "\n".join(relevant)
+    return "\n".join(relevant_chunks)
 
 
 def analyze_resume(
@@ -67,96 +72,56 @@ def analyze_resume(
 
     index, stored_chunks = create_vector_index(chunks)
 
-    if job_description:
-        retrieval_query = (
-            job_description +
-            " projects internships certifications skills achievements experience education"
-        )
-    else:
-        retrieval_query = (
-            f"{placement_target} skills projects certifications internships experience achievements"
-        )
+    search_query = f"""
+placement target: {placement_target}
+job description: {job_description}
+skills
+projects
+internships
+certifications
+technical skills
+experience
+"""
 
     relevant_resume = retrieve_relevant_resume_sections(
-        retrieval_query,
+        search_query,
         index,
         stored_chunks
     )
 
-    if job_description:
-        system_prompt = """
-You are an expert ATS evaluator and technical recruiter.
+    prompt = f"""
+You are an expert ATS evaluator and placement mentor.
 
-STRICT RULES:
-
-1. Analyze ONLY the student's actual resume content.
-2. Compare ONLY against the provided job description.
-3. DO NOT invent missing skills.
-4. DO NOT assume "advanced knowledge" is required unless explicitly stated.
-5. If the job description says "basic understanding", count matching basic skills.
-6. If a skill appears in projects, certifications, internships, or experience, count it.
-7. Differentiate between REQUIRED skills and NICE-TO-HAVE skills.
-8. ATS score must be realistic.
-
-Return EXACTLY in this format:
-
-ATS Score: X/100
-
-Required Skills Matched
-- bullets
-
-Required Skills Missing
-- bullets
-
-Nice-to-Have Skills Missing
-- bullets
-
-Missing Keywords
-- bullets
-
-Weak Resume Sections
-- bullets
-
-Improvement Suggestions
-- bullets
-"""
-        user_prompt = f"""
-JOB DESCRIPTION:
-{job_description}
-
-STUDENT RESUME:
-{relevant_resume}
-"""
-    else:
-        system_prompt = """
-You are an expert placement mentor.
-
-Analyze the student's resume for the target role.
-
-Return:
-
-ATS Score: X/100
-
-Strengths
-- bullets
-
-Missing Skills
-- bullets
-
-Weak Resume Sections
-- bullets
-
-Improvement Suggestions
-- bullets
-
-30-Day Skill Roadmap
-"""
-        user_prompt = f"""
-TARGET ROLE:
+Student Placement Target:
 {placement_target}
 
-STUDENT RESUME:
+Job Description:
+{job_description}
+
+Relevant Resume Content:
 {relevant_resume}
+
+TASK:
+Analyze this resume dynamically.
+
+Rules:
+1. Use ONLY actual resume content.
+2. If job description exists, compare against it.
+3. Infer missing skills dynamically.
+4. Infer missing keywords dynamically.
+5. Give realistic ATS score.
+6. No assumptions.
+
+Return ONLY JSON:
+
+{{
+  "ats_score": number,
+  "matched_skills": [],
+  "missing_skills": [],
+  "missing_keywords": [],
+  "weak_resume_sections": [],
+  "improvement_suggestions": []
+}}
 """
 
     try:
@@ -165,18 +130,24 @@ STUDENT RESUME:
             messages=[
                 {
                     "role": "system",
-                    "content": system_prompt
+                    "content": "You are an ATS evaluator."
                 },
                 {
                     "role": "user",
-                    "content": user_prompt
+                    "content": prompt
                 }
             ],
             temperature=0.2,
-            max_tokens=1400
+            max_tokens=1500
         )
 
-        return response.choices[0].message.content
+        content = response.choices[0].message.content
+
+        try:
+            parsed = json.loads(content)
+            return json.dumps(parsed, indent=2)
+        except:
+            return content
 
     except Exception as e:
-        return f"Groq Resume AI failed: {str(e)}"
+        return f"Resume analysis failed: {str(e)}"
