@@ -1,24 +1,30 @@
 import os
 import json
+import logging
 from dotenv import load_dotenv
 from groq import Groq
 from sentence_transformers import SentenceTransformer
 import faiss
 import numpy as np
 
+from app.core.settings import settings
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=settings.GROQ_API_KEY
 )
 
 embedder = SentenceTransformer(
-    "all-MiniLM-L6-v2"
+    settings.EMBEDDER_MODEL
 )
 
 
-def chunk_text(text, chunk_size=500):
+def chunk_text(text, chunk_size=None):
+    if chunk_size is None:
+        chunk_size = settings.CHUNK_SIZE
+
     chunks = []
 
     for i in range(0, len(text), chunk_size):
@@ -52,7 +58,7 @@ def retrieve_relevant_resume_sections(
 
     distances, indices = index.search(
         np.array(query_embedding).astype("float32"),
-        10
+        settings.FAISS_SEARCH_RESULTS
     )
 
     relevant_chunks = [
@@ -126,28 +132,31 @@ Return ONLY JSON:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
-                    "content": "You are an ATS evaluator."
+                    "content": "You are an ATS evaluator. Return only valid JSON."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            temperature=0.2,
-            max_tokens=1500
+            temperature=settings.AI_TEMPERATURE,
+            max_tokens=settings.MAX_AI_TOKENS_RESUME
         )
 
         content = response.choices[0].message.content
 
         try:
             parsed = json.loads(content)
+            logger.info("Resume analysis completed successfully")
             return json.dumps(parsed, indent=2)
-        except:
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse AI response as JSON: {e}")
             return content
 
     except Exception as e:
+        logger.error(f"Resume analysis failed: {str(e)}")
         return f"Resume analysis failed: {str(e)}"
