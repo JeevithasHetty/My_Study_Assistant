@@ -8,3 +8,4 @@ from . import documents
 from . import planner
 from . import resume
 from . import resources
+from . import placement

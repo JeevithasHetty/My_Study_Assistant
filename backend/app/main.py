@@ -12,7 +12,8 @@ from app.api.routes import (
     documents,
     planner,
     resume as resume_routes,
-    resources
+    resources,
+    placement
 )
 
 # MODELS
@@ -45,6 +46,7 @@ app.include_router(documents.router)
 app.include_router(planner.router)
 app.include_router(resume_routes.router)
 app.include_router(resources.router)
+app.include_router(placement.router)
 
 
 @app.get("/")
