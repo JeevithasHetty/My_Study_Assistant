@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import logging
 from dotenv import load_dotenv
 from groq import Groq
 from sqlalchemy.orm import Session
@@ -10,20 +11,24 @@ from app.models.exam import Exam
 from app.models.task import Task
 from app.models.study_session import StudySession
 from app.models.resume import Resume
-
+from app.core.settings import settings
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=settings.GROQ_API_KEY
 )
 
 
 def extract_json_array(text):
-    match = re.search(r"\[.*\]", text, re.DOTALL)
+    try:
+        match = re.search(r"\[.*\]", text, re.DOTALL)
 
-    if match:
-        return json.loads(match.group())
+        if match:
+            return json.loads(match.group())
+    except json.JSONDecodeError as e:
+        logger.warning(f"Failed to parse JSON array from text: {e}")
 
     return []
 
@@ -37,6 +42,7 @@ def generate_personalized_topics(
     ).first()
 
     if not user:
+        logger.warning(f"User not found for topic generation: {user_email}")
         return []
 
     exams = db.query(Exam).filter(
@@ -119,27 +125,26 @@ Example:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
-                    "content": "Return only JSON arrays."
+                    "content": "Return only valid JSON arrays."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            temperature=0.2,
-            max_tokens=500
+            temperature=settings.AI_TEMPERATURE,
+            max_tokens=settings.MAX_AI_TOKENS_RESOURCES
         )
 
         content = response.choices[0].message.content
-
-        print("Groq response:", content)
+        logger.info(f"Generated personalized topics for user: {user_email}")
 
         return extract_json_array(content)
 
     except Exception as e:
-        print("Groq resource AI error:", str(e))
+        logger.error(f"Resource AI topic generation error: {str(e)}")
         return []

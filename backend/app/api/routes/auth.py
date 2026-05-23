@@ -78,30 +78,3 @@ def login(
         "access_token": token,
         "token_type": "bearer"
     }
-    user = db.query(User).filter(
-        User.email == credentials.email
-    ).first()
-
-    if not user:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials"
-        )
-
-    if not verify_password(
-        credentials.password,
-        user.hashed_password
-    ):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid credentials"
-        )
-
-    token = create_access_token(
-        {"sub": user.email}
-    )
-
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }

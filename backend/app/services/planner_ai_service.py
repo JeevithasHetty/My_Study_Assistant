@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from groq import Groq
 from sqlalchemy.orm import Session
@@ -7,12 +8,13 @@ from app.models.user import User
 from app.models.task import Task
 from app.models.exam import Exam
 from app.models.study_session import StudySession
-
+from app.core.settings import settings
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=settings.GROQ_API_KEY
 )
 
 
@@ -72,6 +74,7 @@ def generate_study_plan(
     context = fetch_user_context(user_email, db)
 
     if not context:
+        logger.warning(f"User not found for study plan: {user_email}")
         return "User not found"
 
     user = context["user"]
@@ -80,7 +83,7 @@ def generate_study_plan(
 You are an expert AI academic planner.
 
 Student Profile:
-Name: {user.name}
+Name: {user.full_name}
 Branch: {user.branch}
 Semester: {user.semester}
 CGPA: {user.cgpa}
@@ -112,7 +115,7 @@ STRICT RULES:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -123,13 +126,15 @@ STRICT RULES:
                     "content": prompt
                 }
             ],
-            temperature=0.4,
-            max_tokens=1200
+            temperature=settings.AI_TEMPERATURE,
+            max_tokens=settings.MAX_AI_TOKENS_PLANNER_DAILY
         )
 
+        logger.info("Daily study plan generated successfully")
         return response.choices[0].message.content
 
     except Exception as e:
+        logger.error(f"Daily planner AI failed: {str(e)}")
         return f"Planner AI failed: {str(e)}"
 
 
@@ -140,6 +145,7 @@ def generate_week_plan(
     context = fetch_user_context(user_email, db)
 
     if not context:
+        logger.warning(f"User not found for week plan: {user_email}")
         return "User not found"
 
     user = context["user"]
@@ -148,7 +154,7 @@ def generate_week_plan(
 You are an expert academic planner.
 
 Student Profile:
-Name: {user.name}
+Name: {user.full_name}
 Branch: {user.branch}
 Semester: {user.semester}
 CGPA: {user.cgpa}
@@ -180,7 +186,7 @@ STRICT RULES:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -191,11 +197,13 @@ STRICT RULES:
                     "content": prompt
                 }
             ],
-            temperature=0.4,
-            max_tokens=1500
+            temperature=settings.AI_TEMPERATURE,
+            max_tokens=settings.MAX_AI_TOKENS_PLANNER_WEEKLY
         )
 
+        logger.info("Weekly study plan generated successfully")
         return response.choices[0].message.content
 
     except Exception as e:
+        logger.error(f"Weekly planner AI failed: {str(e)}")
         return f"Weekly Planner AI failed: {str(e)}"

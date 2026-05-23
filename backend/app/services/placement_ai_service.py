@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import logging
 from dotenv import load_dotenv
 from groq import Groq
 from sqlalchemy.orm import Session
@@ -8,11 +9,13 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.resume import Resume
 from app.models.study_session import StudySession
+from app.core.settings import settings
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 
 client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
+    api_key=settings.GROQ_API_KEY
 )
 
 
@@ -26,22 +29,25 @@ def extract_missing_skills(analysis_text):
         if "missing_skills" in data:
             return data["missing_skills"]
 
-    except:
-        pass
+    except json.JSONDecodeError as e:
+        logger.warning(f"Could not parse analysis JSON: {e}")
 
-    match = re.search(
-        r"missing_skills.*?\[(.*?)\]",
-        analysis_text,
-        re.DOTALL | re.IGNORECASE
-    )
+    try:
+        match = re.search(
+            r"missing_skills.*?\[(.*?)\]",
+            analysis_text,
+            re.DOTALL | re.IGNORECASE
+        )
 
-    if match:
-        skills = match.group(1).split(",")
+        if match:
+            skills = match.group(1).split(",")
 
-        return [
-            skill.strip().replace('"', "")
-            for skill in skills
-        ]
+            return [
+                skill.strip().replace('"', "")
+                for skill in skills
+            ]
+    except Exception as e:
+        logger.warning(f"Failed to extract skills from text: {e}")
 
     return []
 
@@ -78,6 +84,7 @@ def generate_readiness_report(
     ).first()
 
     if not user:
+        logger.warning(f"User not found: {user_email}")
         return {"error": "User not found"}
 
     latest_resume = db.query(Resume).filter(
@@ -142,19 +149,19 @@ Generate JSON ONLY:
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
-                    "content": "Generate placement readiness evaluation."
+                    "content": "Generate placement readiness evaluation. Return only valid JSON."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            temperature=0.2,
-            max_tokens=800
+            temperature=settings.AI_TEMPERATURE,
+            max_tokens=settings.MAX_AI_TOKENS_PLACEMENT
         )
 
         ai_result = json.loads(
@@ -164,9 +171,12 @@ Generate JSON ONLY:
         ai_result["completed_skills"] = completed_skills
         ai_result["remaining_skills"] = remaining_skills
 
+        logger.info("Placement readiness report generated successfully")
         return ai_result
 
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse AI response as JSON: {e}")
+        return {"error": f"Invalid AI response format: {str(e)}"}
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        logger.error(f"Placement readiness report generation failed: {str(e)}")
+        return {"error": str(e)}
