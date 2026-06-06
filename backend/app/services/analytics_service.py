@@ -23,11 +23,19 @@ def extract_ats_score(analysis_text):
     except:
         pass
 
+    
     match = re.search(
-        r'ATS Score[:\s]*(\d+)',
+        r'ATS\s*Score[:\s]*(\d+)',
         analysis_text,
         re.IGNORECASE
     )
+
+    if not match:
+        match = re.search(
+            r'"ATS Score"\s*:\s*(\d+)',
+            analysis_text,
+            re.IGNORECASE
+        )
 
     if match:
         return int(match.group(1))
@@ -80,15 +88,16 @@ def generate_dashboard(
     ).filter(
         StudySession.user_id == user.id
     ).all()
-
-    latest_resume = db.query(
-        Resume
-    ).filter(
-        Resume.user_id == user.id
-    ).order_by(
-        Resume.id.desc()
-    ).first()
-
+    latest_resume = (
+    db.query(Resume)
+    .filter(
+        Resume.user_id == user.id,
+        Resume.analysis.isnot(None),
+        Resume.analysis != ""
+    )
+    .order_by(Resume.id.desc())
+    .first()
+)
     total_study_minutes = sum(
         [
             s.duration_minutes

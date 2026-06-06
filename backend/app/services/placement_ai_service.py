@@ -51,7 +51,6 @@ def extract_missing_skills(analysis_text):
 
     return []
 
-
 def calculate_completed_skills(
     missing_skills,
     study_sessions
@@ -59,16 +58,34 @@ def calculate_completed_skills(
     completed = []
     remaining = []
 
-    studied_topics = " ".join(
-        [
-            session.subject.lower()
-            for session in study_sessions
-        ]
-    )
+    studied_topics = []
+
+    for session in study_sessions:
+
+        if session.subject:
+            studied_topics.append(
+                session.subject.lower()
+            )
 
     for skill in missing_skills:
-        if skill.lower() in studied_topics:
+
+        skill_lower = skill.lower()
+
+        found = False
+
+        for topic in studied_topics:
+
+            if (
+                skill_lower in topic
+                or
+                topic in skill_lower
+            ):
+                found = True
+                break
+
+        if found:
             completed.append(skill)
+
         else:
             remaining.append(skill)
 
@@ -84,18 +101,30 @@ def generate_readiness_report(
     ).first()
 
     if not user:
-        logger.warning(f"User not found: {user_email}")
-        return {"error": "User not found"}
+        return {
+            "error": "User not found"
+        }
 
-    latest_resume = db.query(Resume).filter(
-        Resume.user_id == user.id
-    ).order_by(
-        Resume.id.desc()
-    ).first()
+    latest_resume = (
+        db.query(Resume)
+        .filter(
+            Resume.user_id == user.id,
+            Resume.analysis.isnot(None),
+            Resume.analysis != ""
+        )
+        .order_by(
+            Resume.id.desc()
+        )
+        .first()
+    )
 
-    study_sessions = db.query(StudySession).filter(
-        StudySession.user_id == user.id
-    ).all()
+    study_sessions = (
+        db.query(StudySession)
+        .filter(
+            StudySession.user_id == user.id
+        )
+        .all()
+    )
 
     missing_skills = []
 
@@ -104,17 +133,43 @@ def generate_readiness_report(
             latest_resume.analysis
         )
 
-    completed_skills, remaining_skills = calculate_completed_skills(
-        missing_skills,
-        study_sessions
+    completed_skills, remaining_skills = (
+        calculate_completed_skills(
+            missing_skills,
+            study_sessions
+        )
     )
 
+    total_skills = (
+        len(completed_skills)
+        +
+        len(remaining_skills)
+    )
+
+    if total_skills == 0:
+        readiness_score = 60
+    else:
+        readiness_score = int(
+            (
+                len(completed_skills)
+                /
+                total_skills
+            ) * 100
+        )
+
+    if readiness_score >= 80:
+        status = "Placement Ready"
+
+    elif readiness_score >= 50:
+        status = "Moderately Ready"
+
+    else:
+        status = "Needs Improvement"
+
     prompt = f"""
-You are a placement readiness evaluator.
+You are a placement mentor.
 
-Student profile:
-
-Placement Target:
+Student Target:
 {user.placement_target}
 
 CGPA:
@@ -123,60 +178,80 @@ CGPA:
 Weak Subjects:
 {user.weak_subjects}
 
-Completed Skills:
-{completed_skills}
-
 Remaining Skills:
 {remaining_skills}
 
-Study Session Count:
-{len(study_sessions)}
-
-TASK:
-
-Generate JSON ONLY:
+Generate ONLY JSON:
 
 {{
-  "readiness_score": number between 0 and 100,
-  "status": "Beginner / Moderately Ready / Placement Ready",
-  "improvement_plan": [
-    "step1",
-    "step2",
-    "step3"
-  ]
+    "improvement_plan": [
+        "step1",
+        "step2",
+        "step3"
+    ]
 }}
 """
 
     try:
+
         response = client.chat.completions.create(
             model=settings.GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
-                    "content": "Generate placement readiness evaluation. Return only valid JSON."
+                    "content": "Return only valid JSON."
                 },
                 {
                     "role": "user",
                     "content": prompt
                 }
             ],
-            temperature=settings.AI_TEMPERATURE,
-            max_tokens=settings.MAX_AI_TOKENS_PLACEMENT
+            temperature=0.2,
+            max_tokens=300
         )
 
         ai_result = json.loads(
             response.choices[0].message.content
         )
 
-        ai_result["completed_skills"] = completed_skills
-        ai_result["remaining_skills"] = remaining_skills
+        return {
+            "readiness_score":
+                readiness_score,
 
-        logger.info("Placement readiness report generated successfully")
-        return ai_result
+            "status":
+                status,
 
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse AI response as JSON: {e}")
-        return {"error": f"Invalid AI response format: {str(e)}"}
-    except Exception as e:
-        logger.error(f"Placement readiness report generation failed: {str(e)}")
-        return {"error": str(e)}
+            "completed_skills":
+                completed_skills,
+
+            "remaining_skills":
+                remaining_skills,
+
+            "improvement_plan":
+                ai_result.get(
+                    "improvement_plan",
+                    []
+                )
+        }
+
+    except Exception:
+
+        return {
+            "readiness_score":
+                readiness_score,
+
+            "status":
+                status,
+
+            "completed_skills":
+                completed_skills,
+
+            "remaining_skills":
+                remaining_skills,
+
+            "improvement_plan": [
+                "Study weak subjects",
+                "Complete missing skills",
+                "Practice projects"
+            ]
+        }

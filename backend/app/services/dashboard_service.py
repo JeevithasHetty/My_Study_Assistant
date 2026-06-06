@@ -25,7 +25,7 @@ def get_dashboard_overview(user_email: str, db: Session):
 
     completed_tasks = db.query(Task).filter(
         Task.user_id == user.id,
-        Task.completed == True
+        Task.completed == False
     ).count()
 
     study_sessions = db.query(StudySession).filter(

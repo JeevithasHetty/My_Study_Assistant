@@ -14,7 +14,8 @@ from app.api.routes import (
     resume as resume_routes,
     resources,
     placement,
-    analytics
+    analytics,
+    learning_assistant
 )
 
 # MODELS
@@ -50,6 +51,9 @@ app.include_router(resources.router)
 app.include_router(placement.router)
 app.include_router(
     analytics.router
+)
+app.include_router(
+    learning_assistant.router
 )
 
 
