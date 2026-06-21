@@ -15,11 +15,13 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# ✅ FIXED CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
-        "https://my-study-assistant.vercel.app"
+        "http://localhost:3000",
+        "https://my-study-assistant-e1hzkfl2s-jeevitha3shetty-9221s-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -32,6 +34,7 @@ app.include_router(api_router)
 # Serve uploaded files statically
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 os.makedirs(settings.RESUME_UPLOAD_DIR, exist_ok=True)
+
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 app.mount("/resume-uploads", StaticFiles(directory=settings.RESUME_UPLOAD_DIR), name="resume-uploads")
 
