@@ -1,0 +1,218 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root {
+  --bg-primary: #030712;
+  --bg-secondary: #0F172A;
+  --bg-tertiary: #1E293B;
+  --brand-blue: #2563EB;
+  --brand-cyan: #22D3EE;
+  --brand-green: #10B981;
+  --brand-purple: #8B5CF6;
+  --brand-amber: #F59E0B;
+  --text-primary: #FFFFFF;
+  --text-secondary: #94A3B8;
+  --text-muted: #475569;
+  --border: #1E293B;
+}
+
+/*
+ * IMPORTANT: every custom class below lives inside `@layer components`.
+ *
+ * Tailwind v4 wraps its own utility classes (pl-10, px-4, etc.) in
+ * `@layer utilities`. Per the CSS Cascade Layers spec, ANY unlayered CSS
+ * rule beats ANY layered rule of equal specificity, regardless of source
+ * order. If these classes were left unlayered (as plain top-level rules),
+ * properties they set — like .input-dark's `padding` shorthand — would
+ * permanently win over a utility like `pl-10` applied alongside it in
+ * JSX, no matter what. That was a real, app-wide bug: every input field
+ * pairing `.input-dark` with an icon-clearance utility (pl-9 / pl-10 /
+ * pr-10) had its icon overlapping the text, because the utility's
+ * padding-left never actually took effect. Wrapping these rules in
+ * `@layer components` puts them in the correct cascade position —
+ * between Tailwind's base layer and its utilities layer — so a
+ * component class sets sensible defaults and a utility class applied
+ * alongside it in JSX can still override individual properties as
+ * expected.
+ */
+@layer components {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: #030712;
+    color: #FFFFFF;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0F172A; }
+  ::-webkit-scrollbar-thumb { background: #2563EB; border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3B82F6; }
+
+  /* Selection */
+  ::selection { background: rgba(37, 99, 235, 0.4); color: #fff; }
+
+  /* Glass cards */
+  .glass {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-blue {
+    background: rgba(37, 99, 235, 0.08);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+  }
+
+  /* Neon glow effects */
+  .glow-blue { box-shadow: 0 0 20px rgba(37, 99, 235, 0.4), 0 0 60px rgba(37, 99, 235, 0.1); }
+  .glow-cyan { box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); }
+  .glow-green { box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+  .glow-text-cyan { text-shadow: 0 0 20px rgba(34, 211, 238, 0.8); }
+  .glow-text-blue { text-shadow: 0 0 20px rgba(37, 99, 235, 0.8); }
+
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, #22D3EE 0%, #2563EB 50%, #8B5CF6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-blue {
+    background: linear-gradient(135deg, #60A5FA 0%, #2563EB 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .gradient-text-green {
+    background: linear-gradient(135deg, #34D399 0%, #10B981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Dark card base */
+  .dark-card {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+  .dark-card:hover {
+    border-color: rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(37, 99, 235, 0.15);
+  }
+
+  /* Grid background */
+  .bg-grid {
+    background-image: linear-gradient(rgba(37, 99, 235, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(37, 99, 235, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Animated border gradient */
+  .border-glow {
+    position: relative;
+    overflow: hidden;
+  }
+  .border-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    background: linear-gradient(135deg, #2563EB, #22D3EE, #8B5CF6, #2563EB);
+    background-size: 300% 300%;
+    border-radius: inherit;
+    animation: border-spin 3s linear infinite;
+    z-index: -1;
+  }
+  @keyframes border-spin {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 300% 50%; }
+  }
+
+  /* Status badge pulse */
+  .status-pulse {
+    position: relative;
+  }
+  .status-pulse::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    animation: status-ring 2s ease-out infinite;
+  }
+  @keyframes status-ring {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+
+  /* Input dark — base style; pair with Tailwind's pl-9/pl-10/pr-10 etc.
+     in JSX to clear room for a leading/trailing icon. Living inside
+     @layer components is what makes those utility overrides actually work. */
+  .input-dark {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    color: #FFFFFF;
+    border-radius: 8px;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+  }
+  .input-dark::placeholder { color: #475569; }
+  .input-dark:focus {
+    border-color: #2563EB;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+
+  /* Sidebar active nav */
+  .nav-active {
+    background: rgba(37, 99, 235, 0.15);
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    color: #60A5FA;
+  }
+
+  /* Progress bar dark */
+  .progress-dark {
+    background: #1E293B;
+    border-radius: 9999px;
+    overflow: hidden;
+  }
+  .progress-dark-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #2563EB, #22D3EE);
+    transition: width 0.5s ease;
+  }
+
+  /* Shimmer loading */
+  .shimmer {
+    background: linear-gradient(90deg, #1E293B 25%, #2a3a55 50%, #1E293B 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  /* Toaster dark override */
+  .react-hot-toast-bar {
+    background: #0F172A !important;
+    color: #fff !important;
+    border: 1px solid #1E293B !important;
+    border-radius: 12px !important;
+  }
+}
