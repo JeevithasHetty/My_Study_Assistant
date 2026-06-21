@@ -50,8 +50,19 @@ app.add_middleware(
 # API ROUTES
 # ==================================================
 
+# API ROUTES
+
 app.include_router(api_router)
 
+print("\n=========== ROUTES REGISTERED ===========")
+
+for route in app.routes:
+    try:
+        print(route.path, route.methods)
+    except Exception:
+        pass
+
+print("=========== END ROUTES ===========\n")
 # ==================================================
 # STATIC FILES
 # ==================================================

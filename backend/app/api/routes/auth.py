@@ -11,6 +11,7 @@ from app.core.security import (
 )
 from app.models import User
 from app.schemas import UserRegister, Token, UserOut
+print("AUTH.PY LOADED")
 
 router = APIRouter(
     prefix="/auth",
