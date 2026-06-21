@@ -1,38 +1,62 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.security import (
-    verify_password, get_password_hash,
-    create_access_token, get_current_user
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    get_current_user,
 )
 from app.models import User
 from app.schemas import UserRegister, Token, UserOut
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(
+    prefix="/auth",
+    tags=["auth"]
+)
+
+
+# ==========================================================
+# REGISTER
+# ==========================================================
 @router.post("/register", response_model=UserOut, status_code=201)
-def register(payload: UserRegister, db: Session = Depends(get_db)):
+def register(
+    payload: UserRegister,
+    db: Session = Depends(get_db)
+):
     try:
         print("REGISTER REQUEST RECEIVED")
         print("EMAIL:", payload.email)
         print("USERNAME:", payload.username)
-        print("PASSWORD LENGTH:", len(payload.password))
 
-        # Check existing email
-        if db.query(User).filter(User.email == payload.email).first():
+        # Check email
+        existing_email = (
+            db.query(User)
+            .filter(User.email == payload.email)
+            .first()
+        )
+
+        if existing_email:
             raise HTTPException(
                 status_code=400,
                 detail="Email already registered"
             )
 
-        # Check existing username
-        if db.query(User).filter(User.username == payload.username).first():
+        # Check username
+        existing_username = (
+            db.query(User)
+            .filter(User.username == payload.username)
+            .first()
+        )
+
+        if existing_username:
             raise HTTPException(
                 status_code=400,
                 detail="Username already taken"
             )
 
-        # Hash password
         hashed_password = get_password_hash(payload.password)
 
         user = User(
@@ -65,23 +89,23 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(user)
 
-        # Welcome notification
+        # Optional welcome notification
         try:
             from app.models import Notification
 
-            notif = Notification(
+            notification = Notification(
                 user_id=user.id,
                 title="Welcome to StudentOS AI! 🎉",
-                message=f"Hi {user.full_name}! Your AI-powered academic journey starts now. Complete your profile to get personalized recommendations.",
+                message=f"Hi {user.full_name}! Your AI-powered academic journey starts now.",
                 type="ai",
                 priority="high",
             )
 
-            db.add(notif)
+            db.add(notification)
             db.commit()
 
-        except Exception as notif_error:
-            print("NOTIFICATION ERROR:", str(notif_error))
+        except Exception as notification_error:
+            print("NOTIFICATION ERROR:", str(notification_error))
             db.rollback()
 
         return user
@@ -92,7 +116,74 @@ def register(payload: UserRegister, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         print("REGISTER ERROR:", str(e))
+
         raise HTTPException(
             status_code=500,
             detail=f"Registration failed: {str(e)}"
         )
+
+
+# ==========================================================
+# LOGIN
+# ==========================================================
+@router.post("/login", response_model=Token)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+):
+    try:
+        print("LOGIN REQUEST RECEIVED")
+
+        user = (
+            db.query(User)
+            .filter(
+                (User.email == form_data.username)
+                | (User.username == form_data.username)
+            )
+            .first()
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+
+        if not verify_password(
+            form_data.password,
+            user.hashed_password
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+
+        access_token = create_access_token(
+            data={"sub": str(user.id)}
+        )
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        print("LOGIN ERROR:", str(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Login failed: {str(e)}"
+        )
+
+
+# ==========================================================
+# CURRENT USER
+# ==========================================================
+@router.get("/me", response_model=UserOut)
+def get_me(
+    current_user: User = Depends(get_current_user)
+):
+    return current_user
