@@ -12,6 +12,7 @@ from app.core.security import (
 from app.models import User
 from app.schemas import UserRegister, Token, UserOut
 print("AUTH.PY LOADED")
+print("AUTH.PY LOADED SUCCESSFULLY")
 
 router = APIRouter(
     prefix="/auth",
@@ -60,31 +61,33 @@ def register(
 
         hashed_password = get_password_hash(payload.password)
 
-        user = User(
-            email=payload.email,
-            username=payload.username,
-            full_name=payload.full_name,
-            hashed_password=hashed_password,
-            branch=payload.branch,
-            year_of_study=payload.year_of_study,
-            college_name=payload.college_name,
-            target_role=payload.target_role,
-            target_companies=payload.target_companies,
-            notification_preferences={
-                "exam_alerts": True,
-                "study_reminders": True,
-                "ai_recommendations": True,
-                "placement_updates": False,
-                "weekly_report": True,
-                "email_notifications": False,
-            },
-            ai_preferences={
-                "auto_suggest": True,
-                "learning_style": "visual",
-                "difficulty": "medium",
-                "daily_goal_hours": 5,
-            },
-        )
+       user = User(
+    email=payload.email,
+    username=payload.username,
+    full_name=payload.full_name,
+    hashed_password=hashed_password,
+    branch=payload.branch,
+    year_of_study=payload.year_of_study,
+    college_name=payload.college_name,
+    target_role=payload.target_role,
+    target_companies=payload.target_companies or [],
+
+    notification_preferences={
+        "exam_alerts": True,
+        "study_reminders": True,
+        "ai_recommendations": True,
+        "placement_updates": False,
+        "weekly_report": True,
+        "email_notifications": False,
+    },
+
+    ai_preferences={
+        "auto_suggest": True,
+        "learning_style": "visual",
+        "difficulty": "medium",
+        "daily_goal_hours": 5,
+    },
+)
 
         db.add(user)
         db.commit()

@@ -28,10 +28,10 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
 
     branch = Column(String(100), nullable=True)
-    year_of_study = Column(String(50), nullable=True)
+    year_of_study = Column(Integer, nullable=True)
     college_name = Column(String(255), nullable=True)
     target_role = Column(String(255), nullable=True)
-    target_companies = Column(String(500), nullable=True)
+    target_companies = payload.target_companies or []
     linkedin_url = Column(String(500), nullable=True)
     github_url = Column(String(500), nullable=True)
 
