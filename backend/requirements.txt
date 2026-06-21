@@ -18,3 +18,5 @@ numpy==1.26.4
 scikit-learn==1.5.2
 google-api-python-client==2.149.0
 aiofiles==24.1.0
+email-validator
+pydantic[email]
