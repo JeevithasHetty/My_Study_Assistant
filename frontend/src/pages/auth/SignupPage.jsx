@@ -19,20 +19,37 @@ export default function SignupPage() {
   const navigate = useNavigate();
 
   const update = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      await register(form);
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Could not create account. Please check your details.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    console.log("Register payload:", form);
+
+    // Create account
+    await register(form);
+
+    // Redirect to login page
+    navigate('/login');
+
+    // OR show success message if you have a toast system
+    // alert("Account created successfully. Please login.");
+
+  } catch (err) {
+    console.error("REGISTER ERROR:", err);
+    console.error("RESPONSE:", err.response);
+    console.error("DATA:", err.response?.data);
+
+    setError(
+      err.response?.data?.detail ||
+      err.message ||
+      'Could not create account. Please check your details.'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-bg-primary bg-grid-pattern flex items-center justify-center px-4 py-10 relative overflow-hidden">
