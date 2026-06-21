@@ -7,7 +7,6 @@ from app.api.router import api_router
 from app.core.database import create_tables
 from app.core.config import settings
 
-
 app = FastAPI(
     title="StudentOS AI API",
     description="AI-powered Academic & Career Success Platform",
@@ -17,13 +16,13 @@ app = FastAPI(
 )
 
 # =========================
-# CORS CONFIG (FIXED)
+# CORS CONFIG
 # =========================
 
 origins = [
     "http://localhost:5173",
     "http://localhost:3000",
-    "https://my-study-assistant-e1hzkfl2s-jeevitha3shetty-9221s-projects.vercel.app",
+    "https://my-study-assistant.vercel.app",
 ]
 
 app.add_middleware(
@@ -34,13 +33,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # =========================
-# ROUTES
+# API ROUTES
 # =========================
 
 app.include_router(api_router)
-
 
 # =========================
 # STATIC FILES
@@ -61,17 +58,14 @@ app.mount(
     name="resume-uploads",
 )
 
-
 # =========================
 # STARTUP EVENT
 # =========================
 
 @app.on_event("startup")
 def startup_event():
-    """Initialize DB on startup"""
     create_tables()
-    print("✅ StudentOS AI backend started successfully")
-
+    print("✅ StudentOS AI backend started — PostgreSQL connected")
 
 # =========================
 # ROOT ROUTES
@@ -86,7 +80,8 @@ def root():
         "docs": "/docs",
     }
 
-
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy"
+    }
